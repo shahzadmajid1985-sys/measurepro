@@ -1,0 +1,1572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<title>MeasurePro V2.1 — Precision Reference + Camera Level</title>
+<style>
+  :root { color-scheme: dark; --bg:#101426; --panel:#192342; --cyan:#00d9ff; --green:#00e68a; --amber:#ffbd45; --red:#ff4778; --purple:#bd75ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:#f4f7ff; font-family:Arial,Helvetica,sans-serif; text-align:center; }
+  main { width:min(100%,1000px); margin:0 auto; }
+  h1 { margin:4px 0 8px; color:var(--cyan); font-size:clamp(1.7rem,5vw,2.35rem); }
+  h2 { font-size:1.2rem; margin:0 0 10px; }
+  p { line-height:1.45; }
+  .panel { background:var(--panel); border:1px solid #344266; border-radius:14px; padding:14px; margin:12px auto; }
+  .setup { border:2px solid var(--amber); max-width:650px; }
+  .setup h2 { color:var(--amber); }
+  .report-meta { max-width:650px; }
+  .report-fields { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:10px; }
+  .report-fields label { display:flex; flex-direction:column; gap:5px; text-align:left; color:#c3cbe0; font-size:.9rem; }
+  .report-fields input { background:#101426; color:white; border:1px solid #617094; border-radius:8px; padding:10px; min-height:42px; max-width:100%; }
+  #projectName { width:min(360px,80vw); }
+  .hint { color:#c3cbe0; font-size:.92rem; margin:7px 0; }
+  .controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px; margin:12px 0; }
+  button, input, select { font:inherit; }
+  select { background:#101426; color:white; border:1px solid #617094; border-radius:8px; padding:10px; max-width:100%; }
+  button { border:0; border-radius:10px; padding:11px 15px; font-weight:700; cursor:pointer; background:#46516e; color:white; min-height:42px; }
+  button:focus-visible, input:focus-visible { outline:3px solid white; outline-offset:2px; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .primary { background:var(--green); color:#101426; }
+  .cyan { background:var(--cyan); color:#101426; }
+  .danger { background:var(--red); color:#fff; }
+  .amber { background:var(--amber); color:#101426; }
+  .active { background:var(--green); color:#101426; box-shadow:0 0 0 2px #fff3; }
+  input[type=number] { width:150px; max-width:45vw; background:#101426; border:1px solid #617094; color:white; border-radius:8px; padding:10px; text-align:center; }
+  input[type=file] { display:block; width:100%; max-width:480px; margin:10px auto; padding:8px; background:#101426; border:1px solid #526183; border-radius:8px; color:white; }
+  .image-area { display:none; margin:14px auto; width:100%; text-align:center; }
+  #imageWrap { position:relative; display:inline-block; max-width:100%; line-height:0; vertical-align:top; border:2px solid var(--cyan); border-radius:10px; overflow:hidden; }
+  #preview { display:block; width:auto; height:auto; max-width:calc(100vw - 34px); max-height:65vh; object-fit:contain; border:0; border-radius:0; }
+  #canvas { position:absolute; inset:0; display:block; width:100%; height:100%; touch-action:none; cursor:crosshair; }
+  .results { display:none; max-width:650px; border:1px solid var(--cyan); }
+  .big { color:var(--cyan); font-size:clamp(1.3rem,5vw,2rem); font-weight:700; overflow-wrap:anywhere; }
+  .secondary { color:#c3cbe0; font-size:.93rem; overflow-wrap:anywhere; }
+  #status { min-height:48px; padding:12px; background:#192342; border-radius:10px; color:#f3f6ff; white-space:pre-wrap; }
+  .line-editor { display:none; max-width:650px; border:1px solid var(--green); }
+  .line-editor .editor-row { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:10px; }
+  #lineLengthSlider { width:min(420px,90%); accent-color:var(--green); }
+  #lineLengthNumber { width:125px; }
+  .camera-modal { display:none; position:fixed; inset:0; z-index:9999; background:#050916f5; padding:14px; align-items:center; justify-content:center; }
+  .camera-card { width:min(100%,560px); background:var(--panel); border:1px solid var(--cyan); border-radius:16px; padding:12px; }
+  .camera-preview-wrap { position:relative !important; display:block !important; width:100% !important; height:min(52vh,430px) !important; min-height:260px !important; line-height:normal !important; background:#000; border-radius:10px; overflow:hidden; isolation:isolate; }
+  #liveVideo { position:absolute !important; z-index:1 !important; inset:0 !important; display:block !important; width:100% !important; height:100% !important; min-height:0 !important; max-height:none !important; object-fit:cover; background:#000; border-radius:10px; }
+  .reference-guide { position:absolute !important; z-index:999 !important; display:block !important; visibility:visible !important; opacity:1 !important; left:8px !important; right:8px !important; top:50% !important; transform:translateY(-50%) !important; width:auto !important; box-sizing:border-box; padding:12px 10px; border:3px dashed #00d9ff; border-radius:8px; background:rgba(3,10,24,.88) !important; color:#fff; line-height:1.2; pointer-events:none; text-align:center; box-shadow:0 0 0 3px rgba(0,0,0,.7); }
+  .reference-guide-label { color:#00d9ff; font-size:12px; font-weight:900; letter-spacing:.08em; line-height:1.3; }
+  .reference-guide-line { display:block; position:relative; height:34px; margin:10px 0 7px; border-top:4px dotted #ffbd45; border-bottom:4px dotted #ffbd45; box-sizing:border-box; }
+  .reference-guide-line span { display:none; }
+  .reference-guide-line b { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:inline-block; padding:4px 8px; border-radius:5px; background:#101426; border:1px solid #ffbd45; color:#ffbd45; font-size:16px; line-height:1.2; font-weight:900; white-space:nowrap; text-shadow:0 1px 3px #000; }
+  .reference-guide-note { color:#fff; font-size:11px; line-height:1.3; }
+  .level-hud { margin:8px auto; max-width:340px; padding:10px; border-radius:10px; background:#101426; }
+  .level-track { height:8px; background:#48516b; border-radius:9px; position:relative; margin:15px 8px 8px; }
+  .level-center { position:absolute; left:50%; top:-5px; height:18px; width:2px; background:white; }
+  #levelBubble { position:absolute; left:50%; top:-5px; height:18px; width:18px; border-radius:50%; background:var(--green); transform:translateX(-50%); border:2px solid white; }
+  .warning { color:var(--amber); }
+  .success { color:var(--green); }
+  .error { color:#ff8ca9; }
+  .small { font-size:.82rem; color:#aeb9d4; }
+  .instructions { text-align:left; max-width:650px; }
+  .instructions li { margin:6px 0; line-height:1.4; }
+  @media (max-width:480px) {
+    body { padding:10px; }
+    .panel { padding:11px; }
+    button { flex:1 1 auto; padding:10px; font-size:.9rem; }
+    .controls { gap:6px; }
+    #preview { max-height:58vh; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>📏 MeasurePro</h1>
+  <p class="hint">V2.4 • In-Page Camera Guide • Endpoint Editing • Length Ruler • Camera Level</p>
+  <p class="hint">Measure lengths and shapes on a photo after setting a known reference length.</p>
+
+  <section class="panel setup" aria-labelledby="setupTitle">
+    <h2 id="setupTitle">Step 1: Set a reference</h2>
+    <p class="hint">Choose a photo containing an object with a known length. Best option: a real 12-inch (1-foot) ruler or a straight object whose exact length you know. The on-screen guide helps position it; it is not itself a physical measurement reference.</p>
+    <div class="controls" aria-label="Choose or take a photo">
+      <button type="button" id="choosePhotoBtn">📁 Choose from Gallery</button>
+      <button type="button" id="takePhotoBtn">📷 Take Photo</button>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" hidden>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+    <p class="small">For the dotted guide to appear, Take Photo must open the camera inside MeasurePro. If this file is opened locally and Chrome blocks live camera access, use Gallery or open this page from a secure HTTPS website.</p>
+    <label for="refCm">Known reference length: </label>
+    <input type="number" id="refCm" min="0.001" max="10000000" step="any" placeholder="e.g. 21" inputmode="decimal">
+    <label for="refUnit">Unit: </label>
+    <select id="refUnit" aria-label="Reference length unit">
+      <option value="cm" selected>Centimetres (cm)</option>
+      <option value="in">Inches (in)</option>
+      <option value="ft">Feet (ft)</option>
+      <option value="m">Metres (m)</option>
+      <option value="mm">Millimetres (mm)</option>
+    </select>
+    <p class="small">Upload a photo, enter the real reference length, select its unit, then draw exactly along that reference.</p>
+  </section>
+
+  <section class="panel report-meta" aria-label="Report details">
+    <h2>📋 Report details</h2>
+    <div class="report-fields">
+      <label for="projectName">Project name
+        <input id="projectName" type="text" maxlength="120" placeholder="e.g. House front elevation" value="MeasurePro Project">
+      </label>
+      <label for="reportDate">Report date
+        <input id="reportDate" type="date">
+      </label>
+    </div>
+    <p class="small">These details appear in the PDF report and are saved with the editable project. Project files use the .measurepro format; reopen them from inside MeasurePro using “Open project”.</p>
+  </section>
+
+  <div class="controls" aria-label="Measurement tools">
+    <button id="lineModeBtn" class="active" type="button">📏 Line mode</button>
+    <button id="boxModeBtn" type="button">📦 4-point shape</button>
+    <button id="resetRefBtn" class="amber" type="button" hidden>🔄 New reference</button>
+    <button id="deleteBtn" class="danger" type="button" hidden>🗑️ Delete selected</button>
+    <button id="clearBtn" type="button" hidden>🧹 Clear measurements</button>
+    <button id="zoomOutBtn" type="button" hidden>− Zoom</button>
+    <button id="zoomResetBtn" type="button" hidden>100%</button>
+    <button id="zoomInBtn" type="button" hidden>＋ Zoom</button>
+    <button id="undoBtn" type="button" hidden disabled>↶ Undo</button>
+    <button id="redoBtn" type="button" hidden disabled>↷ Redo</button>
+    <button id="saveProjectBtn" class="cyan" type="button" hidden>💾 Save project</button>
+    <button id="exportJpegBtn" type="button" hidden>⬇️ Export JPEG</button>
+    <button id="exportPngBtn" type="button" hidden>⬇️ Export PNG</button>
+    <button id="exportPdfBtn" type="button" hidden>📄 Export PDF report</button>
+    <button id="openProjectBtn" type="button">📂 Open project</button>
+    <input id="projectInput" type="file" accept=".measurepro,application/json,.json" hidden>
+  </div>
+
+  <section id="imageArea" class="image-area" aria-label="Photo measurement canvas">
+    <div id="imageWrap">
+      <img id="preview" alt="Selected photo" draggable="false">
+      <canvas id="canvas" aria-label="Draw or select measurements on the photo"></canvas>
+    </div>
+  </section>
+
+  <section id="results" class="panel results" aria-live="polite">
+    <h2>📐 Selected measurement</h2>
+    <div id="resultCm" class="big">—</div>
+    <p id="resultOther" class="secondary"></p>
+    <p id="resultAngle" class="secondary"></p>
+  </section>
+
+  <section id="lineEditor" class="panel line-editor" aria-label="Selected line length editor">
+    <h2>↔️ Adjust selected line</h2>
+    <p class="small">Drag either endpoint on the image, or adjust the ruler below. The start point stays fixed when using the ruler.</p>
+    <div class="editor-row">
+      <label for="lineLengthNumber">Line length</label>
+      <input id="lineLengthNumber" type="number" min="0.001" step="any" inputmode="decimal" value="0">
+      <select id="lineLengthUnit" aria-label="Line length unit">
+        <option value="cm">cm</option><option value="in">in</option><option value="ft">ft</option><option value="m">m</option><option value="mm">mm</option>
+      </select>
+    </div>
+    <input id="lineLengthSlider" type="range" min="1" max="1000" step="1" value="100" aria-label="Line length ruler">
+    <p id="lineRulerReadout" class="small">Select a line to adjust its length.</p>
+  </section>
+
+  <div id="cameraModal" class="camera-modal" role="dialog" aria-modal="true" aria-label="Camera with level">
+    <div class="camera-card">
+      <h2>📷 MeasurePro camera level</h2>
+      <div class="camera-preview-wrap">
+        <video id="liveVideo" autoplay playsinline muted></video>
+        <div class="reference-guide" aria-hidden="true">
+          <div class="reference-guide-label">REFERENCE GUIDE</div>
+          <div class="reference-guide-line"><span></span><b>12 IN / 1 FT</b><span></span></div>
+          <div class="reference-guide-note">Align a real 12-inch ruler with this dotted line</div>
+        </div>
+      </div>
+      <div class="level-hud">
+        <strong id="levelText">Level: waiting for sensor…</strong>
+        <div class="level-track"><span class="level-center"></span><span id="levelBubble"></span></div>
+        <p class="small">Keep the bubble near the center and the angle close to 0°.</p>
+      </div>
+      <div class="controls"><button id="captureLiveBtn" class="primary" type="button">● Capture photo</button><button id="closeCameraBtn" class="danger" type="button">Close camera</button></div>
+      <p class="small">Live camera requires HTTPS (or localhost) and permission. The dotted line is a positioning aid only: a real 12-inch ruler must be visible in the captured photo and you must calibrate against its photographed endpoints. If unavailable, use the normal Take Photo option.</p>
+    </div>
+  </div>
+
+  <p id="status" role="status" aria-live="polite">📌 Upload a photo to begin.</p>
+
+  <section class="panel instructions">
+    <h2>How to use</h2>
+    <ol>
+      <li>Capture a photo with a real ruler or known-length object visible. The live camera shows a dotted 12-inch positioning guide; line it up with a real 12-inch ruler if available.</li>
+      <li>Enter the real length of the visible reference (for example, 12 inches or 1 foot) and choose its unit (cm, in, ft, m, or mm). The screen guide alone cannot calibrate the photo.</li>
+      <li>In Line mode, draw a line from one end of the reference to the other. This sets the scale.</li>
+      <li>Draw other lines to measure lengths. In 4-point shape mode, click the first corner, then move the pointer to preview a dotted guide with live length and angle; drag/release to place each next corner.</li>
+      <li>Select a measurement to view its result. Drag a completed line or shape to move it. Zoom in/out for fine placement.</li>
+      <li>Use Undo/Redo to reverse changes, and Save project/Open project to keep working later on the same photo.</li>
+      <li>Use Export JPEG or Export PNG for a high-resolution image with transparent measurement labels. Export PDF report creates a multi-page report with project name, date, measured photo and a separate measurement schedule; choose “Save as PDF”. Save project keeps an editable .measurepro copy for later. In browsers that support Save As, choose the folder and filename; otherwise it downloads using the project name. To reopen, open MeasurePro first and click Open project (double-clicking a .measurepro data file may show raw data in Chrome instead of loading it into the app).</li>
+      <li>Use Clear measurements to remove measured lines and shapes while keeping the reference.</li>
+    </ol>
+    <p class="small">Accuracy note: this calculates measurements in the image plane. Perspective, camera angle, lens distortion, and objects at different depths can cause errors. It is not a substitute for a physical measuring tool.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  const fileInput = document.getElementById('fileInput');
+  const cameraInput = document.getElementById('cameraInput');
+  const choosePhotoBtn = document.getElementById('choosePhotoBtn');
+  const takePhotoBtn = document.getElementById('takePhotoBtn');
+  const preview = document.getElementById('preview');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const imageArea = document.getElementById('imageArea');
+  const statusEl = document.getElementById('status');
+  const refCmInput = document.getElementById('refCm');
+  const refUnitSelect = document.getElementById('refUnit');
+  const results = document.getElementById('results');
+  const resultCm = document.getElementById('resultCm');
+  const resultOther = document.getElementById('resultOther');
+  const resultAngle = document.getElementById('resultAngle');
+  const lineModeBtn = document.getElementById('lineModeBtn');
+  const boxModeBtn = document.getElementById('boxModeBtn');
+  const resetRefBtn = document.getElementById('resetRefBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const zoomResetBtn = document.getElementById('zoomResetBtn');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
+  const saveProjectBtn = document.getElementById('saveProjectBtn');
+  const exportJpegBtn = document.getElementById('exportJpegBtn');
+  const exportPngBtn = document.getElementById('exportPngBtn');
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  const openProjectBtn = document.getElementById('openProjectBtn');
+  const projectInput = document.getElementById('projectInput');
+  const projectNameInput = document.getElementById('projectName');
+  const reportDateInput = document.getElementById('reportDate');
+  const lineEditor = document.getElementById('lineEditor');
+  const lineLengthNumber = document.getElementById('lineLengthNumber');
+  const lineLengthUnit = document.getElementById('lineLengthUnit');
+  const lineLengthSlider = document.getElementById('lineLengthSlider');
+  const lineRulerReadout = document.getElementById('lineRulerReadout');
+  const cameraModal = document.getElementById('cameraModal');
+  const liveVideo = document.getElementById('liveVideo');
+  const levelText = document.getElementById('levelText');
+  const levelBubble = document.getElementById('levelBubble');
+  const captureLiveBtn = document.getElementById('captureLiveBtn');
+  const closeCameraBtn = document.getElementById('closeCameraBtn');
+  let cameraStream = null;
+  let cameraAngle = 0;
+  if (!reportDateInput.value) {
+    const today = new Date();
+    reportDateInput.value = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  }
+
+  let zoomLevel = 1;
+  let undoStack = [];
+  let redoStack = [];
+  let mode = 'line';
+  let isDrawing = false;
+  let startPoint = null;
+  let currentPoint = null;
+  let boxPoints = [];
+  let boxPreviewPoint = null;
+  let isDraggingBoxPoint = false;
+  let isMovingMeasurement = false;
+  let isMovingBoxVertex = false;
+  let isResizingLineEndpoint = false;
+  let resizingEndpoint = 'b';
+  let movingBoxVertexIndex = -1;
+  let moveStartPoint = null;
+  let moveOriginal = null;
+  let lines = [];
+  let boxes = [];
+  let selectedType = null;
+  let selectedIndex = -1;
+  let referenceSet = false;
+  let cmPerImagePixel = 0;
+  let referenceLine = null;
+  let imageNaturalWidth = 0;
+  let imageNaturalHeight = 0;
+  let loadToken = 0;
+  // Low-resolution edge map keeps snapping responsive even for large phone photos.
+  let edgeCanvas = null;
+  let edgeCtx = null;
+  let edgeScaleX = 1;
+  let edgeScaleY = 1;
+  let edgePixels = null;
+  let edgeWidth = 0;
+  let edgeHeight = 0;
+
+  function snapshotState() {
+    return JSON.stringify({
+      referenceSet, cmPerImagePixel, referenceLine, lines, boxes, boxPoints,
+      selectedType, selectedIndex
+    });
+  }
+
+  function pushUndo() {
+    undoStack.push(snapshotState());
+    if (undoStack.length > 100) undoStack.shift();
+    redoStack = [];
+    updateHistoryButtons();
+  }
+
+  function restoreState(serialized) {
+    const s = JSON.parse(serialized);
+    referenceSet = !!s.referenceSet;
+    cmPerImagePixel = Number(s.cmPerImagePixel) || 0;
+    referenceLine = s.referenceLine || null;
+    lines = Array.isArray(s.lines) ? s.lines : [];
+    boxes = Array.isArray(s.boxes) ? s.boxes : [];
+    boxPoints = Array.isArray(s.boxPoints) ? s.boxPoints : [];
+    selectedType = s.selectedType || null;
+    selectedIndex = Number.isInteger(s.selectedIndex) ? s.selectedIndex : -1;
+    boxPreviewPoint = null;
+    isDraggingBoxPoint = false;
+    isMovingMeasurement = false;
+    isMovingBoxVertex = false;
+    movingBoxVertexIndex = -1;
+    isDrawing = false;
+    startPoint = currentPoint = null;
+    if (selectedType === 'line' && lines[selectedIndex]) showLineResult(lines[selectedIndex]);
+    else if (selectedType === 'box' && boxes[selectedIndex]) showBoxResult(boxes[selectedIndex]);
+    else results.style.display = 'none';
+    updateButtons();
+    updateHistoryButtons();
+    redraw();
+  }
+
+  function updateHistoryButtons() {
+    undoBtn.disabled = undoStack.length === 0;
+    redoBtn.disabled = redoStack.length === 0;
+  }
+
+  function setStatus(message, type) {
+    statusEl.textContent = message;
+    statusEl.className = type || '';
+  }
+
+  function validPositiveNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  function distance(a, b) {
+    return Math.hypot(b.x - a.x, b.y - a.y);
+  }
+
+  function angleDegrees(a, b) {
+    return Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+  }
+
+  function normalizeAngle(angle) {
+    let a = ((angle % 360) + 360) % 360;
+    if (a > 180) a -= 360;
+    return a;
+  }
+
+  function alignmentInfo(a, b) {
+    const angle = normalizeAngle(angleDegrees(a, b));
+    const nearest = Math.round(angle / 90) * 90;
+    const diff = Math.abs(normalizeAngle(angle - nearest));
+    if (diff < 3) return { text: '✅ Near horizontal/vertical', color: '#00e68a' };
+    if (diff < 8) return { text: '⚠️ Almost horizontal/vertical', color: '#ffbd45' };
+    return { text: 'ℹ️ Angled line', color: '#ff4778' };
+  }
+
+  function canvasScale() {
+    if (!imageNaturalWidth || !imageNaturalHeight || !canvas.width || !canvas.height) return { x: 1, y: 1 };
+    return { x: canvas.width / imageNaturalWidth, y: canvas.height / imageNaturalHeight };
+  }
+
+  // All stored points use original-image pixel coordinates. Responsive display changes do not alter calibration.
+  function syncCanvasSize() {
+    if (!preview.naturalWidth || !preview.naturalHeight || !preview.clientWidth || !preview.clientHeight) return;
+    imageNaturalWidth = preview.naturalWidth;
+    imageNaturalHeight = preview.naturalHeight;
+    const rect = preview.getBoundingClientRect();
+    const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+    canvas.style.width = preview.clientWidth + 'px';
+    canvas.style.height = preview.clientHeight + 'px';
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    document.getElementById('imageWrap').style.transform = 'scale(' + zoomLevel + ')';
+    document.getElementById('imageWrap').style.transformOrigin = 'center top';
+    redraw();
+  }
+
+  function buildEdgeMap() {
+    edgeCanvas = document.createElement('canvas');
+    const scale = Math.min(1, 1200 / Math.max(preview.naturalWidth, preview.naturalHeight));
+    edgeCanvas.width = Math.max(1, Math.round(preview.naturalWidth * scale));
+    edgeCanvas.height = Math.max(1, Math.round(preview.naturalHeight * scale));
+    edgeCtx = edgeCanvas.getContext('2d', { willReadFrequently: true });
+    edgeCtx.drawImage(preview, 0, 0, edgeCanvas.width, edgeCanvas.height);
+    edgeWidth = edgeCanvas.width;
+    edgeHeight = edgeCanvas.height;
+    edgeScaleX = edgeWidth / preview.naturalWidth;
+    edgeScaleY = edgeHeight / preview.naturalHeight;
+    try { edgePixels = edgeCtx.getImageData(0, 0, edgeWidth, edgeHeight).data; }
+    catch (_) { edgePixels = null; }
+  }
+
+  function snapToEdge(point) {
+    if (!point || !edgePixels || !edgeWidth || !edgeHeight) return point;
+    const cx = Math.round(point.x * edgeScaleX);
+    const cy = Math.round(point.y * edgeScaleY);
+    const displayScale = Math.max(0.1, Math.min(
+      canvas.clientWidth / Math.max(1, imageNaturalWidth),
+      canvas.clientHeight / Math.max(1, imageNaturalHeight)
+    ));
+    const radius = Math.max(3, Math.min(28, Math.round(18 * Math.max(edgeScaleX, edgeScaleY) / displayScale)));
+    let best = null;
+    const lum = (x, y) => {
+      const i = (y * edgeWidth + x) * 4;
+      return 0.299 * edgePixels[i] + 0.587 * edgePixels[i + 1] + 0.114 * edgePixels[i + 2];
+    };
+    for (let y = Math.max(1, cy - radius); y <= Math.min(edgeHeight - 2, cy + radius); y++) {
+      for (let x = Math.max(1, cx - radius); x <= Math.min(edgeWidth - 2, cx + radius); x++) {
+        const gx = Math.abs(lum(x + 1, y) - lum(x - 1, y));
+        const gy = Math.abs(lum(x, y + 1) - lum(x, y - 1));
+        const score = Math.hypot(gx, gy);
+        if (score < 30) continue;
+        const dist = Math.hypot(x - cx, y - cy);
+        const adjusted = score - dist * 1.35;
+        if (!best || adjusted > best.adjusted) best = { x, y, adjusted };
+      }
+    }
+    if (!best) return point;
+    return {
+      x: Math.max(0, Math.min(imageNaturalWidth, best.x / edgeScaleX)),
+      y: Math.max(0, Math.min(imageNaturalHeight, best.y / edgeScaleY))
+    };
+  }
+
+  function getPoint(event) {
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      x: Math.max(0, Math.min(imageNaturalWidth, (event.clientX - rect.left) * imageNaturalWidth / rect.width)),
+      y: Math.max(0, Math.min(imageNaturalHeight, (event.clientY - rect.top) * imageNaturalHeight / rect.height))
+    };
+  }
+
+  function drawLine(a, b, color, width, dashed) {
+    const s = canvasScale();
+    ctx.beginPath();
+    ctx.setLineDash(dashed ? [8, 6] : []);
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width / Math.max(s.x, s.y);
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawPoint(p, color) {
+    const s = canvasScale();
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5 / Math.max(s.x, s.y), 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  // High-precision crosshair guides make both endpoints visible while a finger
+  // is on the screen. Guides are visual only and do not alter stored coordinates.
+  function drawPrecisionPointer(p, color, label) {
+    const s = canvasScale();
+    const scale = Math.max(s.x, s.y) || 1;
+    const radius = 10 / scale;
+    ctx.save();
+    ctx.setLineDash([5 / scale, 4 / scale]);
+    ctx.lineWidth = 1.5 / scale;
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.95;
+    ctx.beginPath();
+    ctx.moveTo(p.x, 0);
+    ctx.lineTo(p.x, imageNaturalHeight);
+    ctx.moveTo(0, p.y);
+    ctx.lineTo(imageNaturalWidth, p.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3 / scale;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8 / scale;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(p.x - 15 / scale, p.y);
+    ctx.lineTo(p.x + 15 / scale, p.y);
+    ctx.moveTo(p.x, p.y - 15 / scale);
+    ctx.lineTo(p.x, p.y + 15 / scale);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5 / scale;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(p.x - 15 / scale, p.y);
+    ctx.lineTo(p.x + 15 / scale, p.y);
+    ctx.moveTo(p.x, p.y - 15 / scale);
+    ctx.lineTo(p.x, p.y + 15 / scale);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1 / scale;
+    ctx.stroke();
+    if (label) {
+      ctx.font = 'bold ' + (12 / scale) + 'px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.lineWidth = 3 / scale;
+      ctx.strokeStyle = '#071426';
+      ctx.strokeText(label, p.x + 13 / scale, p.y - 11 / scale);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(label, p.x + 13 / scale, p.y - 11 / scale);
+    }
+    ctx.restore();
+  }
+
+  function drawLabel(text, x, y, color) {
+    const s = canvasScale();
+    // Split multi-unit labels across three readable rows instead of stretching
+    // one very long label across the photo.
+    const parts = String(text).split('  |  ');
+    const rows = parts.length > 1 ? [parts.slice(0, 2).join('  |  '), parts.slice(2, 4).join('  |  '), parts.slice(4).join('  |  ')].filter(Boolean) : [String(text)];
+    const fontSize = (rows.length > 1 ? 11 : 14) / Math.max(s.x, s.y);
+    ctx.font = 'bold ' + fontSize + 'px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const w = Math.max(...rows.map(row => ctx.measureText(row).width));
+    const lineH = fontSize * 1.45;
+    const h = lineH * rows.length;
+    // Transparent label background: preserve the existing label text colours.
+    ctx.fillStyle = color;
+    rows.forEach((row, i) => ctx.fillText(row, x, y - h / 2 + lineH * (i + .5)));
+  }
+
+  function cmText(imagePixels) {
+    return formatLength(imagePixels * cmPerImagePixel);
+  }
+
+  const units = {
+    cm: { factor: 1, label: 'cm' },
+    in: { factor: 1 / 2.54, label: 'in' },
+    ft: { factor: 1 / 30.48, label: 'ft' },
+    m: { factor: 1 / 100, label: 'm' },
+    mm: { factor: 10, label: 'mm' }
+  };
+
+  function formatLength(cm, unit) {
+    const key = unit || 'cm';
+    const entry = units[key] || units.cm;
+    const value = cm * entry.factor;
+    const digits = key === 'mm' ? 1 : (key === 'ft' || key === 'm' ? 3 : 2);
+    return value.toFixed(digits) + ' ' + entry.label;
+  }
+
+  function drawEndpointHandle(p, color) {
+    const scale = Math.max(canvasScale().x, canvasScale().y) || 1;
+    ctx.save(); ctx.beginPath(); ctx.arc(p.x, p.y, 9 / scale, 0, Math.PI * 2);
+    ctx.fillStyle = '#101426'; ctx.fill(); ctx.lineWidth = 3 / scale; ctx.strokeStyle = color; ctx.stroke();
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3 / scale, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); ctx.restore();
+  }
+
+  function allLengthUnits(cm) {
+    return formatLength(cm, 'cm') + '  |  ' + formatLength(cm, 'in') + '  |  ' +
+      formatLength(cm, 'ft') + '  |  ' + formatLength(cm, 'm') + '  |  ' + formatLength(cm, 'mm');
+  }
+
+  function allAreaUnits(cm2) {
+    return cm2.toFixed(2) + ' cm²  |  ' + (cm2 / 6.4516).toFixed(2) + ' in²  |  ' +
+      (cm2 / 929.0304).toFixed(4) + ' ft²  |  ' + (cm2 / 10000).toFixed(4) + ' m²  |  ' +
+      (cm2 * 100).toFixed(1) + ' mm²';
+  }
+
+  function translated(point, dx, dy) {
+    return { x: point.x + dx, y: point.y + dy };
+  }
+
+  function moveSelectedMeasurement(p) {
+    if (!isMovingMeasurement || !moveStartPoint || !moveOriginal || !selectedType || selectedIndex < 0) return;
+    const dx = p.x - moveStartPoint.x;
+    const dy = p.y - moveStartPoint.y;
+    if (selectedType === 'line') {
+      if (isResizingLineEndpoint) {
+        const fixed = resizingEndpoint === 'a' ? moveOriginal.b : moveOriginal.a;
+        const moving = snapToEdge(p);
+        lines[selectedIndex] = resizingEndpoint === 'a' ? { a: moving, b: { ...fixed } } : { a: { ...fixed }, b: moving };
+      } else {
+        lines[selectedIndex] = { a: translated(moveOriginal.a, dx, dy), b: translated(moveOriginal.b, dx, dy) };
+      }
+    } else if (isMovingBoxVertex && movingBoxVertexIndex >= 0) {
+      const points = moveOriginal.points.map(pt => ({ x: pt.x, y: pt.y }));
+      points[movingBoxVertexIndex] = translated(moveOriginal.points[movingBoxVertexIndex], dx, dy);
+      boxes[selectedIndex] = { points };
+    } else {
+      boxes[selectedIndex] = { points: moveOriginal.points.map(pt => translated(pt, dx, dy)) };
+    }
+    if (selectedType === 'line') showLineResult(lines[selectedIndex]);
+    else showBoxResult(boxes[selectedIndex]);
+    redraw();
+  }
+
+  function polygonArea(points) {
+    let sum = 0;
+    for (let i = 0; i < points.length; i++) {
+      const a = points[i], b = points[(i + 1) % points.length];
+      sum += a.x * b.y - b.x * a.y;
+    }
+    return Math.abs(sum) / 2;
+  }
+
+  function polygonPerimeter(points) {
+    let sum = 0;
+    for (let i = 0; i < points.length; i++) sum += distance(points[i], points[(i + 1) % points.length]);
+    return sum;
+  }
+
+  function pointOnSegment(p, a, b, tolerance) {
+    const ab = { x: b.x - a.x, y: b.y - a.y };
+    const ap = { x: p.x - a.x, y: p.y - a.y };
+    const lenSq = ab.x * ab.x + ab.y * ab.y;
+    const t = lenSq ? Math.max(0, Math.min(1, (ap.x * ab.x + ap.y * ab.y) / lenSq)) : 0;
+    return Math.hypot(p.x - (a.x + t * ab.x), p.y - (a.y + t * ab.y)) <= tolerance;
+  }
+
+  function pointInPolygon(p, points) {
+    let inside = false;
+    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+      const a = points[i], b = points[j];
+      const intersects = ((a.y > p.y) !== (b.y > p.y)) &&
+        (p.x < (b.x - a.x) * (p.y - a.y) / ((b.y - a.y) || Number.EPSILON) + a.x);
+      if (intersects) inside = !inside;
+    }
+    return inside;
+  }
+
+  function redraw() {
+    if (!canvas.width || !canvas.height || !imageNaturalWidth || !imageNaturalHeight) return;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const sx = canvas.width / imageNaturalWidth;
+    const sy = canvas.height / imageNaturalHeight;
+    ctx.setTransform(sx, 0, 0, sy, 0, 0);
+
+    if (referenceLine) {
+      drawLine(referenceLine.a, referenceLine.b, '#00d9ff', 3, true);
+      drawPoint(referenceLine.a, '#00d9ff');
+      drawPoint(referenceLine.b, '#00d9ff');
+      drawLabel('REFERENCE ' + allLengthUnits(referenceLine.cm),
+        (referenceLine.a.x + referenceLine.b.x) / 2,
+        (referenceLine.a.y + referenceLine.b.y) / 2 - 15 / Math.max(sx, sy), '#00d9ff');
+    }
+
+    lines.forEach((line, i) => {
+      const color = selectedType === 'line' && selectedIndex === i ? '#00e68a' : '#ff4778';
+      drawLine(line.a, line.b, color, selectedType === 'line' && selectedIndex === i ? 4 : 3, true);
+      drawPoint(line.a, color);
+      drawPoint(line.b, color);
+      if (selectedType === 'line' && selectedIndex === i) {
+        drawPrecisionPointer(line.a, '#00d9ff', 'A');
+        drawPrecisionPointer(line.b, '#ffbd45', 'B');
+        drawEndpointHandle(line.a, '#00d9ff');
+        drawEndpointHandle(line.b, '#ffbd45');
+      }
+      const mid = { x: (line.a.x + line.b.x) / 2, y: (line.a.y + line.b.y) / 2 };
+      drawLabel(allLengthUnits(distance(line.a, line.b) * cmPerImagePixel), mid.x, mid.y, color);
+    });
+
+    boxes.forEach((box, i) => {
+      const color = selectedType === 'box' && selectedIndex === i ? '#00e68a' : '#bd75ff';
+      for (let k = 0; k < box.points.length; k++) {
+        const a = box.points[k], b = box.points[(k + 1) % box.points.length];
+        drawLine(a, b, color, selectedType === 'box' && selectedIndex === i ? 4 : 3, true);
+        drawPoint(a, color);
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        drawLabel(allLengthUnits(distance(a, b) * cmPerImagePixel), mid.x, mid.y, color);
+      }
+      const centroid = box.points.reduce((acc, p) => ({ x: acc.x + p.x / 4, y: acc.y + p.y / 4 }), { x: 0, y: 0 });
+      drawLabel('Area ' + (polygonArea(box.points) * cmPerImagePixel * cmPerImagePixel).toFixed(2) + ' cm²',
+        centroid.x, centroid.y, color);
+    });
+
+    if (isDrawing && startPoint && currentPoint) {
+      const info = alignmentInfo(startPoint, currentPoint);
+      drawLine(startPoint, currentPoint, info.color, 3, true);
+      drawPoint(startPoint, info.color);
+      drawPoint(currentPoint, info.color);
+      drawPrecisionPointer(startPoint, '#00d9ff', 'START');
+      drawPrecisionPointer(currentPoint, '#ffbd45', 'END');
+      const mid = { x: (startPoint.x + currentPoint.x) / 2, y: (startPoint.y + currentPoint.y) / 2 };
+      drawLabel(referenceSet ? allLengthUnits(distance(startPoint, currentPoint) * cmPerImagePixel) : distance(startPoint, currentPoint).toFixed(1) + ' px', mid.x, mid.y, info.color);
+    }
+
+    if (mode === 'box' && boxPoints.length) {
+      boxPoints.forEach((p, i) => {
+        drawPoint(p, '#ffbd45');
+        if (i > 0) drawLine(boxPoints[i - 1], p, '#ffbd45', 2, true);
+      });
+      if (boxPreviewPoint) {
+        const last = boxPoints[boxPoints.length - 1];
+        const info = alignmentInfo(last, boxPreviewPoint);
+        const len = distance(last, boxPreviewPoint) * (referenceSet ? cmPerImagePixel : 1);
+        const angle = normalizeAngle(angleDegrees(last, boxPreviewPoint));
+        drawLine(last, boxPreviewPoint, info.color, 3, true);
+        drawPoint(boxPreviewPoint, info.color);
+        drawPrecisionPointer(last, '#00d9ff', 'START');
+        drawPrecisionPointer(boxPreviewPoint, '#ffbd45', 'CORNER');
+        const mid = { x: (last.x + boxPreviewPoint.x) / 2, y: (last.y + boxPreviewPoint.y) / 2 };
+        const unitText = referenceSet ? allLengthUnits(len) : len.toFixed(1) + ' px';
+        drawLabel(unitText, mid.x, mid.y - 12 / Math.max(sx, sy), info.color);
+        drawLabel(angle.toFixed(1) + '° • ' + info.text.replace(/^.{2}\s*/, ''), mid.x, mid.y + 12 / Math.max(sx, sy), info.color);
+      }
+    }
+  }
+
+  function updateButtons() {
+    resetRefBtn.hidden = !preview.src;
+    clearBtn.hidden = !preview.src;
+    zoomOutBtn.hidden = !preview.src;
+    zoomResetBtn.hidden = !preview.src;
+    zoomInBtn.hidden = !preview.src;
+    undoBtn.hidden = !preview.src;
+    redoBtn.hidden = !preview.src;
+    saveProjectBtn.hidden = !preview.src;
+    exportJpegBtn.hidden = !preview.src;
+    exportPngBtn.hidden = !preview.src;
+    exportPdfBtn.hidden = !preview.src;
+    deleteBtn.hidden = !(selectedIndex >= 0 && selectedType);
+    updateHistoryButtons();
+    updateLineEditor();
+    lineModeBtn.classList.toggle('active', mode === 'line');
+    boxModeBtn.classList.toggle('active', mode === 'box');
+  }
+
+  function showLineResult(line) {
+    if (!line || !referenceSet) return;
+    const pixels = distance(line.a, line.b);
+    const cm = pixels * cmPerImagePixel;
+    const info = alignmentInfo(line.a, line.b);
+    const angle = angleDegrees(line.a, line.b).toFixed(1);
+    resultCm.textContent = allLengthUnits(cm);
+    resultOther.textContent = 'Length in all units: ' + allLengthUnits(cm);
+    resultAngle.textContent = info.text + ' · Angle: ' + angle + '°';
+    resultAngle.style.color = info.color;
+    results.style.display = 'block';
+  }
+
+  function showBoxResult(box) {
+    if (!box || !referenceSet) return;
+    const sides = box.points.map((p, i) => distance(p, box.points[(i + 1) % 4]) * cmPerImagePixel);
+    const perimeter = sides.reduce((a, b) => a + b, 0);
+    const area = polygonArea(box.points) * cmPerImagePixel * cmPerImagePixel;
+    resultCm.textContent = 'Sides (cm): ' + sides.map(v => v.toFixed(2)).join(' × ');
+    resultOther.textContent = 'Perimeter: ' + allLengthUnits(perimeter) + '\nArea: ' + allAreaUnits(area) +
+      '\nSide lengths in all units: ' + sides.map(v => '[' + allLengthUnits(v) + ']').join('  ·  ');
+    resultAngle.textContent = '4-point shape (quadrilateral). Area uses the four clicked points; it is not assumed to be a rectangle.';
+    resultAngle.style.color = '#bd75ff';
+    results.style.display = 'block';
+  }
+
+  function updateLineEditor() {
+    const active = selectedType === 'line' && selectedIndex >= 0 && !!lines[selectedIndex] && referenceSet;
+    lineEditor.style.display = active ? 'block' : 'none';
+    if (!active) return;
+    const ln = lines[selectedIndex];
+    const cm = distance(ln.a, ln.b) * cmPerImagePixel;
+    const unit = lineLengthUnit.value || 'cm';
+    lineLengthNumber.value = (cm * units[unit].factor).toFixed(3).replace(/\.?0+$/, '');
+    const maxPixels = Math.ceil(Math.hypot(imageNaturalWidth, imageNaturalHeight));
+    lineLengthSlider.max = String(Math.max(100, maxPixels));
+    lineLengthSlider.value = String(Math.max(1, Math.min(maxPixels, Math.round(distance(ln.a, ln.b)))));
+    lineRulerReadout.textContent = 'Current: ' + allLengthUnits(cm) + ' · Drag endpoint A or B for direct adjustment.';
+  }
+
+  function applySelectedLineLength(value, unit, isPixels) {
+    if (selectedType !== 'line' || selectedIndex < 0 || !lines[selectedIndex]) return;
+    const ln = lines[selectedIndex];
+    const current = distance(ln.a, ln.b);
+    if (!current || !Number.isFinite(value) || value <= 0) return;
+    const targetPixels = isPixels ? value : (value / units[unit].factor) / cmPerImagePixel;
+    const ratio = targetPixels / current;
+    pushUndo();
+    lines[selectedIndex] = { a: { ...ln.a }, b: { x: ln.a.x + (ln.b.x-ln.a.x)*ratio, y: ln.a.y + (ln.b.y-ln.a.y)*ratio } };
+    showLineResult(lines[selectedIndex]); redraw(); updateLineEditor();
+    setStatus('✅ Selected line length updated.', 'success');
+  }
+
+  lineLengthNumber.addEventListener('change', function () { applySelectedLineLength(Number(lineLengthNumber.value), lineLengthUnit.value, false); });
+  lineLengthUnit.addEventListener('change', updateLineEditor);
+  lineLengthSlider.addEventListener('change', function () { applySelectedLineLength(Number(lineLengthSlider.value), 'cm', true); });
+
+  function selectItem(type, index) {
+    selectedType = type;
+    selectedIndex = index;
+    if (type === 'line') showLineResult(lines[index]);
+    else showBoxResult(boxes[index]);
+    updateButtons();
+    updateLineEditor();
+    redraw();
+  }
+
+  function findLineAt(p) {
+    const tolerance = 15 * imageNaturalWidth / Math.max(1, preview.clientWidth);
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (pointOnSegment(p, lines[i].a, lines[i].b, tolerance)) return i;
+    }
+    return -1;
+  }
+
+  function findBoxAt(p) {
+    const tolerance = 15 * imageNaturalWidth / Math.max(1, preview.clientWidth);
+    for (let i = boxes.length - 1; i >= 0; i--) {
+      const pts = boxes[i].points;
+      if (pointInPolygon(p, pts)) return i;
+      for (let k = 0; k < 4; k++) {
+        if (pointOnSegment(p, pts[k], pts[(k + 1) % 4], tolerance)) return i;
+      }
+    }
+    return -1;
+  }
+
+  // Return a nearby corner of a completed quadrilateral. Corner hit-testing
+  // runs before shape-body hit-testing so each vertex can be edited separately.
+  function findBoxVertexAt(p) {
+    const tolerance = 14 * imageNaturalWidth / Math.max(1, preview.clientWidth);
+    for (let i = boxes.length - 1; i >= 0; i--) {
+      const pts = boxes[i].points;
+      for (let k = 3; k >= 0; k--) {
+        if (distance(p, pts[k]) <= tolerance) return { boxIndex: i, vertexIndex: k };
+      }
+    }
+    return null;
+  }
+
+  function finishLine(a, b) {
+    const pixels = distance(a, b);
+    if (pixels < Math.max(2, Math.min(imageNaturalWidth, imageNaturalHeight) * 0.002)) {
+      setStatus('⚠️ Line is too short. Draw a longer line between two distinct points.', 'warning');
+      return;
+    }
+
+    if (!referenceSet) {
+      const knownValue = validPositiveNumber(refCmInput.value);
+      if (!knownValue) {
+        setStatus('⚠️ Enter a valid reference length greater than zero before drawing the reference line.', 'warning');
+        return;
+      }
+      const refUnit = refUnitSelect.value;
+      const knownCm = knownValue / units[refUnit].factor;
+      if (knownCm > 10000000) {
+        setStatus('⚠️ Reference length is too large. Check the value and try again.', 'warning');
+        return;
+      }
+      pushUndo();
+      cmPerImagePixel = knownCm / pixels;
+      if (!Number.isFinite(cmPerImagePixel) || cmPerImagePixel <= 0) {
+        setStatus('⚠️ Could not calibrate this line. Please try again.', 'error');
+        return;
+      }
+      referenceSet = true;
+      referenceLine = { a, b, cm: knownCm };
+      selectedType = null;
+      selectedIndex = -1;
+      results.style.display = 'none';
+      setStatus('✅ Reference set to ' + allLengthUnits(knownCm) + '. Now draw measurement lines or switch to 4-point shape mode.', 'success');
+      redraw();
+      updateButtons();
+      return;
+    }
+
+    pushUndo();
+    lines.push({ a, b });
+    selectItem('line', lines.length - 1);
+    setStatus('✅ Line measured. Select another line or shape to view its result.', 'success');
+  }
+
+  function addBoxPoint(p) {
+    if (!referenceSet) {
+      setStatus('⚠️ Set the reference length first, then create a shape.', 'warning');
+      return;
+    }
+    pushUndo();
+    boxPoints.push(p);
+    boxPreviewPoint = null;
+    if (boxPoints.length === 4) {
+      const areaPx = polygonArea(boxPoints);
+      const perimeterPx = polygonPerimeter(boxPoints);
+      if (areaPx < 4 || perimeterPx < 8) {
+        boxPoints = [];
+        redraw();
+        setStatus('⚠️ These points make a degenerate or extremely small shape. Please select four clearer corners.', 'warning');
+        return;
+      }
+      boxes.push({ points: boxPoints.slice() });
+      boxPoints = [];
+      boxPreviewPoint = null;
+      selectItem('box', boxes.length - 1);
+      setStatus('✅ Shape measured. Its area and perimeter are shown in the result panel.', 'success');
+    } else {
+      setStatus('📦 Point ' + boxPoints.length + ' of 4 selected. Tap the next corner in order. Use Clear measurements to cancel and start over.', '');
+      redraw();
+    }
+  }
+
+  choosePhotoBtn.addEventListener('click', function () { fileInput.click(); });
+  async function openLevelCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setStatus('⚠️ Chrome cannot start an in-page camera from this local HTML file. The dotted guide cannot appear in the phone Camera app. Open MeasurePro from a secure HTTPS website, then allow camera permission.', 'warning'); alert('Live camera guide needs an in-page camera. Chrome is not providing camera access for this local file. Open MeasurePro from a secure HTTPS website and allow camera permission.'); return; }
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      liveVideo.srcObject = cameraStream; cameraModal.style.display = 'flex';
+      liveVideo.play().catch(function () {});
+      setStatus('📐 Camera level is active. Center the bubble, then capture.', 'success');
+    } catch (err) {
+      setStatus('⚠️ MeasurePro could not access the in-page camera (' + (err && err.name ? err.name : 'camera error') + '). The phone Camera app cannot display the dotted guide. Open this page from a secure HTTPS website and allow camera permission.', 'warning');
+      alert('MeasurePro could not open the live camera inside the page (' + (err && err.name ? err.name : 'camera error') + '). The dotted guide cannot appear in the separate phone Camera app. Please open MeasurePro from a secure HTTPS website and allow camera permission.');
+    }
+  }
+  function closeLevelCamera() {
+    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+    liveVideo.srcObject = null; cameraModal.style.display = 'none';
+  }
+  takePhotoBtn.addEventListener('click', openLevelCamera);
+  closeCameraBtn.addEventListener('click', closeLevelCamera);
+  window.addEventListener('deviceorientation', function (event) {
+    if (event.gamma == null) return;
+    cameraAngle = event.gamma;
+    const clamped = Math.max(-45, Math.min(45, cameraAngle));
+    levelBubble.style.left = (50 + clamped / 90 * 90) + '%';
+    levelBubble.style.background = Math.abs(cameraAngle) <= 2 ? 'var(--green)' : (Math.abs(cameraAngle) <= 5 ? 'var(--amber)' : 'var(--red)');
+    levelText.textContent = 'Tilt: ' + cameraAngle.toFixed(1) + '° · ' + (Math.abs(cameraAngle) <= 2 ? 'LEVEL' : 'Adjust phone');
+  });
+  captureLiveBtn.addEventListener('click', function () {
+    if (!liveVideo.videoWidth || !liveVideo.videoHeight) { setStatus('⚠️ Camera is not ready yet.', 'warning'); return; }
+    const shot = document.createElement('canvas'); shot.width = liveVideo.videoWidth; shot.height = liveVideo.videoHeight;
+    shot.getContext('2d').drawImage(liveVideo, 0, 0, shot.width, shot.height);
+    shot.toBlob(function (blob) {
+      if (!blob) { setStatus('⚠️ Could not capture this photo.', 'error'); return; }
+      const file = new File([blob], 'MeasurePro-Camera-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+      closeLevelCamera();
+      const dt = new DataTransfer(); dt.items.add(file); cameraInput.files = dt.files;
+      handlePhotoSelection({ target: cameraInput });
+    }, 'image/jpeg', 0.92);
+  });
+
+  function handlePhotoSelection(event) {
+    const sourceInput = event.target;
+    const file = sourceInput.files && sourceInput.files[0];
+    if (!file) return;
+    if (!file.type || !file.type.startsWith('image/')) {
+      sourceInput.value = '';
+      setStatus('❌ This file does not appear to be an image. Please choose a JPG, PNG, WEBP, or another supported image.', 'error');
+      return;
+    }
+    const maxBytes = 25 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      sourceInput.value = '';
+      setStatus('❌ Image is larger than 25 MB. Please choose a smaller image.', 'error');
+      return;
+    }
+    const token = ++loadToken;
+    const objectUrl = URL.createObjectURL(file);
+    const probe = new Image();
+    setStatus('⏳ Loading image…', '');
+    probe.onload = function () {
+      if (token !== loadToken) { URL.revokeObjectURL(objectUrl); return; }
+      if (!probe.naturalWidth || !probe.naturalHeight) {
+        URL.revokeObjectURL(objectUrl);
+        setStatus('❌ The image has no usable dimensions. Please choose another file.', 'error');
+        return;
+      }
+      // Avoid huge canvases / browser memory spikes from very high-resolution photos.
+      if (probe.naturalWidth * probe.naturalHeight > 40000000) {
+        URL.revokeObjectURL(objectUrl);
+        sourceInput.value = '';
+        setStatus('❌ This photo is extremely large (over 40 megapixels). Please resize it and upload again.', 'error');
+        return;
+      }
+      preview.onload = function () {
+        if (token !== loadToken) return;
+        imageArea.style.display = 'block';
+        lines = [];
+        boxes = [];
+        boxPoints = [];
+        undoStack = [];
+        redoStack = [];
+        zoomLevel = 1;
+        document.getElementById('imageWrap').style.transform = 'scale(1)';
+        zoomResetBtn.textContent = '100%';
+        selectedType = null;
+        selectedIndex = -1;
+        referenceSet = false;
+        cmPerImagePixel = 0;
+        referenceLine = null;
+        results.style.display = 'none';
+        refCmInput.value = '';
+        try { buildEdgeMap(); } catch (_) { edgePixels = null; }
+        requestAnimationFrame(function () {
+          syncCanvasSize();
+          updateButtons();
+          setStatus('📌 Image loaded. Edge snapping is on: draw near a strong edge and MeasurePro will try to snap the point to it. Set the known reference length first.', '');
+        });
+      };
+      preview.onerror = function () {
+        URL.revokeObjectURL(objectUrl);
+        setStatus('❌ The image could not be displayed. Please try another image file.', 'error');
+      };
+      const oldSrc = preview.dataset.objectUrl;
+      if (oldSrc) URL.revokeObjectURL(oldSrc);
+      preview.dataset.objectUrl = objectUrl;
+      preview.src = objectUrl;
+    };
+    probe.onerror = function () {
+      URL.revokeObjectURL(objectUrl);
+      if (token === loadToken) setStatus('❌ Could not read this image. It may be damaged or unsupported.', 'error');
+    };
+    probe.src = objectUrl;
+  }
+
+  fileInput.addEventListener('change', handlePhotoSelection);
+  cameraInput.addEventListener('change', handlePhotoSelection);
+
+  lineModeBtn.addEventListener('click', function () {
+    mode = 'line';
+    boxPoints = [];
+    boxPreviewPoint = null;
+    isDraggingBoxPoint = false;
+    isMovingMeasurement = false;
+    isMovingBoxVertex = false;
+    movingBoxVertexIndex = -1;
+    moveStartPoint = null;
+    moveOriginal = null;
+    updateButtons();
+    redraw();
+    setStatus(referenceSet ? '📏 Line mode: drag between two points to measure a length.' : '📏 Line mode: draw a line on the known reference object to calibrate.', '');
+  });
+
+  boxModeBtn.addEventListener('click', function () {
+    mode = 'box';
+    boxPoints = [];
+    boxPreviewPoint = null;
+    isDraggingBoxPoint = false;
+    isMovingMeasurement = false;
+    isMovingBoxVertex = false;
+    movingBoxVertexIndex = -1;
+    moveStartPoint = null;
+    moveOriginal = null;
+    updateButtons();
+    redraw();
+    setStatus(referenceSet ? '📦 Shape mode: click or drag each next corner. A dotted guide shows live length and angle.' : '⚠️ Set the reference first, then use 4-point shape mode.', referenceSet ? '' : 'warning');
+  });
+
+  function findLineEndpointAt(p) {
+    const tolerance = 22 * imageNaturalWidth / Math.max(1, preview.clientWidth);
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (distance(p, lines[i].b) <= tolerance) return { index: i, end: 'b' };
+      if (distance(p, lines[i].a) <= tolerance) return { index: i, end: 'a' };
+    }
+    return null;
+  }
+
+  canvas.addEventListener('pointerdown', function (event) {
+    if (!preview.naturalWidth) return;
+    event.preventDefault();
+    let p = getPoint(event);
+    if (!p) return;
+    // Snap new measurement points to nearby high-contrast edges.
+    p = snapToEdge(p);
+
+    // Endpoint handles are tested before line-body selection so a user can resize either end.
+    const endpointHit = findLineEndpointAt(p);
+    if (endpointHit && mode === 'line' && boxPoints.length === 0) {
+      selectItem('line', endpointHit.index);
+      pushUndo(); isMovingMeasurement = true; isResizingLineEndpoint = true; resizingEndpoint = endpointHit.end;
+      moveStartPoint = p;
+      moveOriginal = { a: { ...lines[endpointHit.index].a }, b: { ...lines[endpointHit.index].b } };
+      try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+      setStatus('↔️ Endpoint selected. Drag this end to shorten or lengthen the line.', 'success');
+      return;
+    }
+
+    // Completed-shape vertices can be moved independently in either tool mode.
+    // This is checked before the shape body so a corner press does not move the whole shape.
+    if (boxPoints.length === 0) {
+      const vertexHit = findBoxVertexAt(p);
+      if (vertexHit) {
+        selectItem('box', vertexHit.boxIndex);
+        pushUndo();
+        isMovingMeasurement = true;
+        isMovingBoxVertex = true;
+        movingBoxVertexIndex = vertexHit.vertexIndex;
+        moveStartPoint = p;
+        moveOriginal = { points: boxes[vertexHit.boxIndex].points.map(pt => ({ x: pt.x, y: pt.y })) };
+        try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+        setStatus('↔️ Shape corner selected. Drag this corner to adjust the shape; release to finish.', 'success');
+        return;
+      }
+    }
+
+    // In 4-point shape mode, the first point is placed on click. Each following
+    // point can be dragged before release; its guide displays live length/angle.
+    if (mode === 'box') {
+      if (!referenceSet) {
+        setStatus('⚠️ Set the reference length first, then create a shape.', 'warning');
+        return;
+      }
+      if (boxPoints.length === 0) {
+        const existingBoxIndex = findBoxAt(p);
+        if (existingBoxIndex !== -1) {
+          selectItem('box', existingBoxIndex);
+          pushUndo();
+          isMovingMeasurement = true;
+          moveStartPoint = p;
+          moveOriginal = { points: boxes[existingBoxIndex].points.map(pt => ({ x: pt.x, y: pt.y })) };
+          try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+          setStatus('↔️ Shape selected. Drag to move it; release to place it. To draw a new shape, click outside existing shapes.', 'success');
+          return;
+        }
+        boxPreviewPoint = p;
+        addBoxPoint(p);
+        boxPreviewPoint = p;
+        redraw();
+        return;
+      }
+      isDraggingBoxPoint = true;
+      boxPreviewPoint = p;
+      try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+      redraw();
+      return;
+    }
+
+    const boxIndex = findBoxAt(p);
+    if (boxIndex !== -1) {
+      selectItem('box', boxIndex);
+      pushUndo();
+      isMovingMeasurement = true;
+      moveStartPoint = p;
+      moveOriginal = { points: boxes[boxIndex].points.map(pt => ({ x: pt.x, y: pt.y })) };
+      try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+      setStatus('↔️ Shape selected. Drag to move it; release to place it.', 'success');
+      return;
+    }
+    const lineIndex = findLineAt(p);
+    if (lineIndex !== -1) {
+      selectItem('line', lineIndex);
+      pushUndo();
+      isMovingMeasurement = true;
+      moveStartPoint = p;
+      moveOriginal = { a: { x: lines[lineIndex].a.x, y: lines[lineIndex].a.y }, b: { x: lines[lineIndex].b.x, y: lines[lineIndex].b.y } };
+      try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+      setStatus('↔️ Line selected. Drag to move it; release to place it.', 'success');
+      return;
+    }
+
+    isDrawing = true;
+    startPoint = p;
+    currentPoint = p;
+    selectedType = null;
+    selectedIndex = -1;
+    results.style.display = 'none';
+    try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+    redraw();
+  });
+
+  canvas.addEventListener('pointermove', function (event) {
+    let p = getPoint(event);
+    if (isMovingMeasurement && p) {
+      event.preventDefault();
+      moveSelectedMeasurement(p);
+      return;
+    }
+    if (mode === 'box' && boxPoints.length > 0 && p) {
+      p = snapToEdge(p);
+      if (isDraggingBoxPoint || !isDrawing) {
+        boxPreviewPoint = p;
+        redraw();
+      }
+      return;
+    }
+    if (!isDrawing) return;
+    event.preventDefault();
+    if (!p) return;
+    currentPoint = snapToEdge(p);
+    redraw();
+  });
+
+  function endDrawing(event) {
+    if (isMovingMeasurement) {
+      event.preventDefault();
+      isMovingMeasurement = false;
+      isMovingBoxVertex = false;
+      isResizingLineEndpoint = false;
+      movingBoxVertexIndex = -1;
+      moveStartPoint = null;
+      moveOriginal = null;
+      redraw(); updateLineEditor();
+      setStatus('✅ Measurement position updated.', 'success');
+      return;
+    }
+    if (mode === 'box' && isDraggingBoxPoint) {
+      event.preventDefault();
+      const rawPoint = getPoint(event) || boxPreviewPoint;
+      const p = rawPoint ? snapToEdge(rawPoint) : boxPreviewPoint;
+      isDraggingBoxPoint = false;
+      if (p) addBoxPoint(p);
+      boxPreviewPoint = null;
+      redraw();
+      return;
+    }
+    if (!isDrawing) return;
+    event.preventDefault();
+    const p = getPoint(event) || currentPoint;
+    isDrawing = false;
+    if (startPoint && p) finishLine(startPoint, p);
+    startPoint = null;
+    currentPoint = null;
+    redraw();
+  }
+  canvas.addEventListener('pointerup', endDrawing);
+  canvas.addEventListener('pointercancel', function () {
+    if (isDraggingBoxPoint) {
+      isDraggingBoxPoint = false;
+      boxPreviewPoint = null;
+      redraw();
+      setStatus('Point drag cancelled. The already placed corners were kept.', 'warning');
+      return;
+    }
+    isDrawing = false;
+    startPoint = null;
+    currentPoint = null;
+    redraw();
+    setStatus('Drawing cancelled. Please try again.', 'warning');
+  });
+
+  deleteBtn.addEventListener('click', function () {
+    if (selectedIndex < 0 || !selectedType) return;
+    pushUndo();
+    if (selectedType === 'line') lines.splice(selectedIndex, 1);
+    else boxes.splice(selectedIndex, 1);
+    selectedType = null;
+    selectedIndex = -1;
+    results.style.display = 'none';
+    updateButtons();
+    redraw();
+    setStatus('🗑️ Selected measurement deleted. The reference calibration was kept.', '');
+  });
+
+  clearBtn.addEventListener('click', function () {
+    pushUndo();
+    lines = [];
+    boxes = [];
+    boxPoints = [];
+    boxPreviewPoint = null;
+    isDraggingBoxPoint = false;
+    isMovingMeasurement = false;
+    isMovingBoxVertex = false;
+    movingBoxVertexIndex = -1;
+    moveStartPoint = null;
+    moveOriginal = null;
+    selectedType = null;
+    selectedIndex = -1;
+    isDrawing = false;
+    startPoint = null;
+    currentPoint = null;
+    results.style.display = 'none';
+    updateButtons();
+    redraw();
+    setStatus(referenceSet ? '🧹 Measurements cleared. Your reference calibration is still active.' : '🧹 Drawings cleared. Set a new reference to begin measuring.', '');
+  });
+
+  resetRefBtn.addEventListener('click', function () {
+    pushUndo();
+    referenceSet = false;
+    cmPerImagePixel = 0;
+    referenceLine = null;
+    lines = [];
+    boxes = [];
+    boxPoints = [];
+    boxPreviewPoint = null;
+    isDraggingBoxPoint = false;
+    isMovingMeasurement = false;
+    isMovingBoxVertex = false;
+    movingBoxVertexIndex = -1;
+    moveStartPoint = null;
+    moveOriginal = null;
+    selectedType = null;
+    selectedIndex = -1;
+    isDrawing = false;
+    startPoint = null;
+    currentPoint = null;
+    results.style.display = 'none';
+    updateButtons();
+    redraw();
+    setStatus('🔄 Reference reset. Enter a known length, select its unit, and draw a new reference line.', '');
+    refCmInput.focus();
+  });
+
+  zoomInBtn.addEventListener('click', function () {
+    zoomLevel = Math.min(3, +(zoomLevel + 0.25).toFixed(2));
+    document.getElementById('imageWrap').style.transform = 'scale(' + zoomLevel + ')';
+    zoomResetBtn.textContent = Math.round(zoomLevel * 100) + '%';
+  });
+  zoomOutBtn.addEventListener('click', function () {
+    zoomLevel = Math.max(0.5, +(zoomLevel - 0.25).toFixed(2));
+    document.getElementById('imageWrap').style.transform = 'scale(' + zoomLevel + ')';
+    zoomResetBtn.textContent = Math.round(zoomLevel * 100) + '%';
+  });
+  zoomResetBtn.addEventListener('click', function () {
+    zoomLevel = 1;
+    document.getElementById('imageWrap').style.transform = 'scale(1)';
+    zoomResetBtn.textContent = '100%';
+  });
+
+  undoBtn.addEventListener('click', function () {
+    if (!undoStack.length) return;
+    redoStack.push(snapshotState());
+    restoreState(undoStack.pop());
+    setStatus('↶ Last change undone.', 'success');
+  });
+  redoBtn.addEventListener('click', function () {
+    if (!redoStack.length) return;
+    undoStack.push(snapshotState());
+    restoreState(redoStack.pop());
+    setStatus('↷ Change restored.', 'success');
+  });
+
+  async function downloadProject() {
+    if (!preview.naturalWidth) {
+      setStatus('Upload a photo before saving a project.', 'warning');
+      return;
+    }
+    try {
+      const imageCanvas = document.createElement('canvas');
+      imageCanvas.width = preview.naturalWidth;
+      imageCanvas.height = preview.naturalHeight;
+      const imageContext = imageCanvas.getContext('2d');
+      imageContext.drawImage(preview, 0, 0);
+      const project = {
+        app: 'MeasurePro', version: 2, imageData: imageCanvas.toDataURL('image/jpeg', 0.94),
+        state: JSON.parse(snapshotState()), refInput: refCmInput.value, refUnit: refUnitSelect.value,
+        projectName: projectNameInput.value.trim() || 'MeasurePro Project',
+        reportDate: reportDateInput.value || new Date().toISOString().slice(0, 10),
+        savedAt: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(project)], { type: 'application/vnd.measurepro.project+json' });
+      const safeName = (project.projectName || 'MeasurePro Project')
+        .replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
+        .replace(/\s+/g, ' ').trim().replace(/[. ]+$/g, '') || 'MeasurePro Project';
+      const suggestedName = safeName + '.measurepro';
+
+      // Modern browsers let the user choose the exact folder and filename.
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName,
+            types: [{ description: 'MeasurePro editable project', accept: { 'application/vnd.measurepro.project+json': ['.measurepro'] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          setStatus('Project saved as "' + handle.name + '". To reopen it, open MeasurePro and choose Open project.', 'success');
+          return;
+        } catch (pickerError) {
+          if (pickerError && pickerError.name === 'AbortError') {
+            setStatus('Save cancelled. No project file was changed.', 'warning');
+            return;
+          }
+          // If the picker is unsupported/blocked, fall back to a browser download.
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = suggestedName; a.style.display = 'none';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+      setStatus('Project download started as "' + suggestedName + '". Check your browser Downloads folder. To reopen it, open MeasurePro and choose Open project.', 'success');
+    } catch (err) {
+      setStatus('Could not save this project. Try a smaller image. ' + (err.message || ''), 'error');
+    }
+  }
+  function createExportCanvas() {
+    if (!preview.naturalWidth || !preview.naturalHeight) throw new Error('Upload a photo first.');
+    const out = document.createElement('canvas');
+    out.width = preview.naturalWidth;
+    out.height = preview.naturalHeight;
+    const c = out.getContext('2d');
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(preview, 0, 0, out.width, out.height);
+    const scale = Math.max(1, Math.min(out.width, out.height) / 900);
+    function line(a, b, color, width, dashed) {
+      c.beginPath(); c.setLineDash(dashed ? [8 * scale, 6 * scale] : []);
+      c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.strokeStyle = color;
+      c.lineWidth = width * scale; c.lineCap = 'round'; c.stroke(); c.setLineDash([]);
+    }
+    function point(pt, color) {
+      c.beginPath(); c.arc(pt.x, pt.y, 4 * scale, 0, Math.PI * 2); c.fillStyle = color; c.fill();
+    }
+    function label(text, x, y, color) {
+      const parts = String(text).split('  |  ');
+      const rows = parts.length > 1 ? [parts.slice(0,2).join('  |  '), parts.slice(2,4).join('  |  '), parts.slice(4).join('  |  ')].filter(Boolean) : [String(text)];
+      const fs = (rows.length > 1 ? 11 : 14) * scale;
+      c.font = 'bold ' + fs + 'px Arial'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      const w = Math.max(...rows.map(t => c.measureText(t).width)); const lh = fs * 1.45; const h = lh * rows.length;
+      // Transparent label background for clean, unobstructed image exports.
+      c.fillStyle = color; rows.forEach((t,i)=>c.fillText(t,x,y-h/2+lh*(i+.5)));
+    }
+    function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+    if (referenceLine) {
+      line(referenceLine.a,referenceLine.b,'#00d9ff',3,true); point(referenceLine.a,'#00d9ff'); point(referenceLine.b,'#00d9ff');
+      label('REFERENCE ' + allLengthUnits(referenceLine.cm),(referenceLine.a.x+referenceLine.b.x)/2,(referenceLine.a.y+referenceLine.b.y)/2-18*scale,'#00d9ff');
+    }
+    lines.forEach((ln,i)=>{
+      const color = selectedType==='line' && selectedIndex===i ? '#00e68a' : '#ff4778';
+      line(ln.a,ln.b,color,3,true); point(ln.a,color); point(ln.b,color);
+      label(allLengthUnits(dist(ln.a,ln.b)*cmPerImagePixel),(ln.a.x+ln.b.x)/2,(ln.a.y+ln.b.y)/2,color);
+    });
+    boxes.forEach((box,i)=>{
+      const color=selectedType==='box' && selectedIndex===i ? '#00e68a' : '#bd75ff';
+      box.points.forEach((a,k)=>{
+        const b=box.points[(k+1)%4]; line(a,b,color,3,true); point(a,color);
+        label(allLengthUnits(dist(a,b)*cmPerImagePixel),(a.x+b.x)/2,(a.y+b.y)/2,color);
+      });
+      const center=box.points.reduce((acc,pt)=>({x:acc.x+pt.x/4,y:acc.y+pt.y/4}),{x:0,y:0});
+      const area=polygonArea(box.points)*cmPerImagePixel*cmPerImagePixel;
+      label('Area '+allAreaUnits(area),center.x,center.y,color);
+    });
+    return out;
+  }
+
+  function downloadExport(format) {
+    try {
+      const out = createExportCanvas();
+      const mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+      const quality = format === 'jpeg' ? 0.98 : undefined;
+      out.toBlob(function(blob) {
+        if (!blob) { setStatus('❌ Export failed. Try a smaller photo.', 'error'); return; }
+        const url=URL.createObjectURL(blob); const a=document.createElement('a');
+        a.href=url; a.download='MeasurePro-measurements.'+(format==='jpeg'?'jpg':'png');
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1500);
+        setStatus('✅ High-resolution '+format.toUpperCase()+' exported with the photo and measurement overlays.', 'success');
+      }, mime, quality);
+    } catch (err) { setStatus('❌ Could not export image: '+(err.message||'unknown error'), 'error'); }
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[ch];
+    });
+  }
+
+  function reportMeasurementRows() {
+    const rows = [];
+    if (referenceLine) {
+      rows.push({ type:'Reference line', name:'Calibration reference', length:allLengthUnits(referenceLine.cm), details:'Used to calibrate the image scale.' });
+    }
+    lines.forEach(function (ln, i) {
+      const cm = distance(ln.a, ln.b) * cmPerImagePixel;
+      rows.push({ type:'Line', name:'Line ' + (i + 1), length:allLengthUnits(cm), details:'Angle: ' + (Math.atan2(ln.b.y-ln.a.y, ln.b.x-ln.a.x) * 180 / Math.PI).toFixed(1) + '°' });
+    });
+    boxes.forEach(function (box, i) {
+      const areaCm2 = polygonArea(box.points) * cmPerImagePixel * cmPerImagePixel;
+      const perimeterCm = polygonPerimeter(box.points) * cmPerImagePixel;
+      const edges = box.points.map(function (pt, k) {
+        return allLengthUnits(distance(pt, box.points[(k+1)%4]) * cmPerImagePixel);
+      });
+      rows.push({ type:'4-point shape', name:'Shape ' + (i + 1), length:'Perimeter: ' + allLengthUnits(perimeterCm), details:'Area: ' + allAreaUnits(areaCm2) + '<br>Edges: ' + edges.map(function (v,k) { return 'E' + (k+1) + ': ' + v; }).join('<br>') });
+    });
+    return rows;
+  }
+
+  function exportPdf() {
+    try {
+      const out = createExportCanvas();
+      const data = out.toDataURL('image/jpeg', 0.98);
+      const win = window.open('', '_blank');
+      if (!win) { setStatus('⚠️ Browser blocked the PDF report window. Allow pop-ups for this file and try again.', 'warning'); return; }
+      const projectName = projectNameInput.value.trim() || 'MeasurePro Project';
+      const reportDate = reportDateInput.value || new Date().toISOString().slice(0,10);
+      const rows = reportMeasurementRows();
+      const rowHtml = rows.length ? rows.map(function (r) {
+        return '<tr><td>' + escapeHtml(r.name) + '</td><td>' + escapeHtml(r.type) + '</td><td>' + escapeHtml(r.length) + '</td><td>' + r.details + '</td></tr>';
+      }).join('') : '<tr><td colspan="4">No measurements have been added yet.</td></tr>';
+      const summary = (lines.length + boxes.length) + ' measurement item(s) • ' + lines.length + ' line(s) • ' + boxes.length + ' shape(s)';
+      const reportHtml = '<!doctype html><html><head><meta charset="utf-8"><title>' + escapeHtml(projectName) + ' — MeasurePro Report</title>' +
+        '<style>@page{size:A4 portrait;margin:14mm}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#172033}h1{font-size:23pt;margin:0 0 5mm;color:#13294b}h2{font-size:15pt;margin:0 0 4mm}p{font-size:10pt;line-height:1.5}.meta{display:grid;grid-template-columns:1fr 1fr;gap:3mm 8mm;margin:5mm 0 7mm}.meta div{padding:3mm;border:1px solid #d8dfeb;border-radius:2mm;font-size:10pt}.photo{display:block;width:100%;max-height:205mm;object-fit:contain;margin:5mm auto 0}.cover{page-break-after:always;break-after:page}.report-subtitle{color:#52627b}.summary{font-size:10pt;margin:0 0 5mm}table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.5pt}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}th,td{border:1px solid #cbd4e2;padding:2.5mm;text-align:left;vertical-align:top;overflow-wrap:anywhere;line-height:1.35}th{background:#edf2f8;color:#172033}th:nth-child(1){width:17%}th:nth-child(2){width:15%}th:nth-child(3){width:34%}th:nth-child(4){width:34%}.footer{margin-top:6mm;color:#68758a;font-size:8pt}@media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>' +
+        '<section class="cover"><h1>MeasurePro Measurement Report</h1><p class="report-subtitle">Professional photo measurement record</p><div class="meta"><div><b>Project</b><br>' + escapeHtml(projectName) + '</div><div><b>Report date</b><br>' + escapeHtml(reportDate) + '</div><div><b>Reference calibration</b><br>' + (referenceSet ? 'Set' : 'Not set') + '</div><div><b>Photo dimensions</b><br>' + preview.naturalWidth + ' × ' + preview.naturalHeight + ' pixels</div></div><p class="summary">' + escapeHtml(summary) + '</p><img class="photo" alt="Measured photo with transparent labels" src="' + data + '"></section>' +
+        '<section><h2>Measurement schedule</h2><p class="summary">Lengths are provided in cm, inches, feet, metres and millimetres. Shape areas are provided in cm², in², ft², m² and mm².</p><table><thead><tr><th>Item</th><th>Type</th><th>Length / perimeter</th><th>Details</th></tr></thead><tbody>' + rowHtml + '</tbody></table><p class="footer">Generated by MeasurePro • Verify critical dimensions with a physical measuring tool.</p></section>' +
+        '<script>window.onload=function(){setTimeout(function(){window.focus();window.print()},450)};<\/script></body></html>';
+      win.document.open();
+      win.document.write(reportHtml);
+      win.document.close();
+      setStatus('📄 Multi-page PDF report prepared with project details, measured photo and a separate measurement schedule. Choose “Save as PDF” in the print dialog.', 'success');
+    } catch (err) { setStatus('❌ Could not prepare PDF report: '+(err.message||'unknown error'), 'error'); }
+  }
+
+  exportJpegBtn.addEventListener('click', function(){downloadExport('jpeg');});
+  exportPngBtn.addEventListener('click', function(){downloadExport('png');});
+  exportPdfBtn.addEventListener('click', exportPdf);
+
+  saveProjectBtn.addEventListener('click', downloadProject);
+  openProjectBtn.addEventListener('click', function () { projectInput.click(); });
+  projectInput.addEventListener('change', function () {
+    const file = projectInput.files && projectInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+      let project;
+      try { project = JSON.parse(String(reader.result)); } catch (_) {
+        setStatus('❌ This is not a valid MeasurePro project file.', 'error'); projectInput.value = ''; return;
+      }
+      if (!project || project.app !== 'MeasurePro' || !project.imageData || !project.state) {
+        setStatus('❌ This file is not a supported MeasurePro project.', 'error'); projectInput.value = ''; return;
+      }
+      const img = new Image();
+      img.onload = function () {
+        preview.onload = function () {
+          imageArea.style.display = 'block';
+          refCmInput.value = project.refInput || '';
+          refUnitSelect.value = units[project.refUnit] ? project.refUnit : 'cm';
+          projectNameInput.value = project.projectName || 'MeasurePro Project';
+          if (project.reportDate) reportDateInput.value = project.reportDate;
+          undoStack = []; redoStack = [];
+          requestAnimationFrame(function () {
+            syncCanvasSize();
+            restoreState(JSON.stringify(project.state));
+            updateButtons();
+            setStatus('📂 Opened project: ' + (project.projectName || file.name) + '. You can continue editing and save it again.', 'success');
+          });
+        };
+        preview.src = project.imageData;
+      };
+      img.onerror = function () { setStatus('❌ Could not open the image stored in this project.', 'error'); };
+      img.src = project.imageData;
+    };
+    reader.readAsText(file);
+    projectInput.value = '';
+  });
+
+  window.addEventListener('resize', function () {
+    if (preview.naturalWidth) requestAnimationFrame(syncCanvasSize);
+  });
+
+  preview.addEventListener('load', function () {
+    if (preview.naturalWidth) requestAnimationFrame(syncCanvasSize);
+  });
+
+  // Prevent an unfinished four-point shape from being mistaken for a completed measurement.
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && boxPoints.length) {
+      boxPoints = [];
+      redraw();
+      setStatus('Incomplete shape cancelled.', '');
+    }
+  });
+
+  updateButtons();
+})();
+</script>
+</body>
+</html>
