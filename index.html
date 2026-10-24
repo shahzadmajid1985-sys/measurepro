@@ -39,6 +39,10 @@
   #imageWrap { position:relative; display:inline-block; max-width:100%; line-height:0; vertical-align:top; border:2px solid var(--cyan); border-radius:10px; overflow:hidden; }
   #preview { display:block; width:auto; height:auto; max-width:calc(100vw - 34px); max-height:65vh; object-fit:contain; border:0; border-radius:0; }
   #canvas { position:absolute; inset:0; display:block; width:100%; height:100%; touch-action:none; cursor:crosshair; }
+  #aiPanel { max-width:650px; border:1px solid var(--purple); }
+  #aiPanel h2 { color:var(--purple); }
+  #aiDetectionSelect { width:min(100%,460px); margin:6px auto; }
+  #aiStatus { min-height:22px; }
   .results { display:none; max-width:650px; border:1px solid var(--cyan); }
   .big { color:var(--cyan); font-size:clamp(1.3rem,5vw,2rem); font-weight:700; overflow-wrap:anywhere; }
   .secondary { color:#c3cbe0; font-size:.93rem; overflow-wrap:anywhere; }
@@ -51,11 +55,11 @@
   .camera-card { width:min(100%,560px); background:var(--panel); border:1px solid var(--cyan); border-radius:16px; padding:12px; }
   .camera-preview-wrap { position:relative !important; display:block !important; width:100% !important; height:min(52vh,430px) !important; min-height:260px !important; line-height:normal !important; background:#000; border-radius:10px; overflow:hidden; isolation:isolate; }
   #liveVideo { position:absolute !important; z-index:1 !important; inset:0 !important; display:block !important; width:100% !important; height:100% !important; min-height:0 !important; max-height:none !important; object-fit:cover; background:#000; border-radius:10px; }
-  .reference-guide { position:absolute !important; z-index:999 !important; display:block !important; visibility:visible !important; opacity:1 !important; left:8px !important; right:8px !important; top:50% !important; transform:translateY(-50%) !important; width:auto !important; box-sizing:border-box; padding:12px 10px; border:3px dashed #00d9ff; border-radius:8px; background: transparent !important; color:#fff; line-height:1.2; pointer-events:none; text-align:center; box-shadow: none !important; }
+  .reference-guide { position:absolute !important; z-index:999 !important; display:block !important; visibility:visible !important; opacity:1 !important; left:8px !important; right:8px !important; top:50% !important; transform:translateY(-50%) !important; width:auto !important; box-sizing:border-box; padding:12px 10px; border:3px dashed #00d9ff; border-radius:8px; background:rgba(3,10,24,.88) !important; color:#fff; line-height:1.2; pointer-events:none; text-align:center; box-shadow:0 0 0 3px rgba(0,0,0,.7); }
   .reference-guide-label { color:#00d9ff; font-size:12px; font-weight:900; letter-spacing:.08em; line-height:1.3; }
   .reference-guide-line { display:block; position:relative; height:34px; margin:10px 0 7px; border-top:4px dotted #ffbd45; border-bottom:4px dotted #ffbd45; box-sizing:border-box; }
   .reference-guide-line span { display:none; }
-  .reference-guide-line b { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:inline-block; padding:4px 8px; border-radius:5px; background: transparent !important; border:1px solid #ffbd45; color:#ffbd45; font-size:16px; line-height:1.2; font-weight:900; white-space:nowrap; text-shadow:0 1px 3px #000; }
+  .reference-guide-line b { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:inline-block; padding:4px 8px; border-radius:5px; background:#101426; border:1px solid #ffbd45; color:#ffbd45; font-size:16px; line-height:1.2; font-weight:900; white-space:nowrap; text-shadow:0 1px 3px #000; }
   .reference-guide-note { color:#fff; font-size:11px; line-height:1.3; }
   .level-hud { margin:8px auto; max-width:340px; padding:10px; border-radius:10px; background:#101426; }
   .level-track { height:8px; background:#48516b; border-radius:9px; position:relative; margin:15px 8px 8px; }
@@ -137,6 +141,24 @@
     <input id="projectInput" type="file" accept=".measurepro,application/json,.json" hidden>
   </div>
 
+  <section id="aiPanel" class="panel" aria-labelledby="aiTitle">
+    <h2 id="aiTitle">🧠 AI Smart Measurement</h2>
+    <p class="hint">Free, browser-based object detection. Scan a photo to suggest object outlines, then review and correct them before using them for measurements.</p>
+    <div class="controls">
+      <button id="aiScanBtn" class="primary" type="button" disabled>✨ Scan photo with AI</button>
+      <button id="aiClearBtn" type="button" disabled>Clear AI outlines</button>
+    </div>
+    <label for="aiDetectionSelect">Detected object:</label>
+    <select id="aiDetectionSelect" aria-label="Select an AI detected object" disabled>
+      <option value="">No detections yet</option>
+    </select>
+    <div class="controls">
+      <button id="aiUseBoxBtn" class="cyan" type="button" disabled>Use selected outline as 4-point shape</button>
+    </div>
+    <p id="aiStatus" class="small" role="status" aria-live="polite">Choose a photo first. AI model loads only when you tap Scan.</p>
+    <p class="small">Privacy and accuracy: image inference runs in this browser; the AI model is downloaded from free public hosting when needed. The photo itself is not uploaded by this feature. Detection boxes are suggestions, not exact physical edges. Set the reference length and verify every outline before trusting measurements. Requires an internet connection for the first model download.</p>
+  </section>
+
   <section id="imageArea" class="image-area" aria-label="Photo measurement canvas">
     <div id="imageWrap">
       <img id="preview" alt="Selected photo" draggable="false">
@@ -198,6 +220,7 @@
       <li>Select a measurement to view its result. Drag a completed line or shape to move it. Zoom in/out for fine placement.</li>
       <li>Use Undo/Redo to reverse changes, and Save project/Open project to keep working later on the same photo.</li>
       <li>Use Export JPEG or Export PNG for a high-resolution image with transparent measurement labels. Export PDF report creates a multi-page report with project name, date, measured photo and a separate measurement schedule; choose “Save as PDF”. Save project keeps an editable .measurepro copy for later. In browsers that support Save As, choose the folder and filename; otherwise it downloads using the project name. To reopen, open MeasurePro first and click Open project (double-clicking a .measurepro data file may show raw data in Chrome instead of loading it into the app).</li>
+      <li>Optional AI Smart Measurement: tap “Scan photo with AI” to detect supported everyday objects. Select a suggestion and use it as an editable 4-point shape, then drag its corners to match the real edges. AI outlines are suggestions and do not replace reference calibration or manual verification.</li>
       <li>Use Clear measurements to remove measured lines and shapes while keeping the reference.</li>
     </ol>
     <p class="small">Accuracy note: this calculates measurements in the image plane. Perspective, camera angle, lens distortion, and objects at different depths can cause errors. It is not a substitute for a physical measuring tool.</p>
@@ -241,6 +264,12 @@
   const projectInput = document.getElementById('projectInput');
   const projectNameInput = document.getElementById('projectName');
   const reportDateInput = document.getElementById('reportDate');
+  const aiPanel = document.getElementById('aiPanel');
+  const aiScanBtn = document.getElementById('aiScanBtn');
+  const aiClearBtn = document.getElementById('aiClearBtn');
+  const aiDetectionSelect = document.getElementById('aiDetectionSelect');
+  const aiUseBoxBtn = document.getElementById('aiUseBoxBtn');
+  const aiStatus = document.getElementById('aiStatus');
   const lineEditor = document.getElementById('lineEditor');
   const lineLengthNumber = document.getElementById('lineLengthNumber');
   const lineLengthUnit = document.getElementById('lineLengthUnit');
@@ -294,6 +323,12 @@
   let edgePixels = null;
   let edgeWidth = 0;
   let edgeHeight = 0;
+  // AI detection suggestions are temporary overlays and do not alter existing project measurements.
+  let aiModel = null;
+  let aiModelLoading = null;
+  let aiDetections = [];
+  let aiSelectedIndex = -1;
+  let aiScanToken = 0;
 
   function snapshotState() {
     return JSON.stringify({
@@ -653,6 +688,30 @@
     const sy = canvas.height / imageNaturalHeight;
     ctx.setTransform(sx, 0, 0, sy, 0, 0);
 
+    // AI outlines are deliberately drawn underneath calibrated measurements.
+    aiDetections.forEach((det, i) => {
+      if (!det || !det.bbox) return;
+      const b = det.bbox;
+      const chosen = i === aiSelectedIndex;
+      ctx.save();
+      ctx.strokeStyle = chosen ? '#ffbd45' : '#00d9ff';
+      ctx.lineWidth = (chosen ? 3.5 : 2.2) / Math.max(sx, sy);
+      ctx.setLineDash([8 / Math.max(sx, sy), 5 / Math.max(sx, sy)]);
+      ctx.strokeRect(b[0], b[1], b[2], b[3]);
+      ctx.setLineDash([]);
+      const label = 'AI: ' + det.class + ' ' + Math.round((det.score || 0) * 100) + '%';
+      ctx.font = 'bold ' + (12 / Math.max(sx, sy)) + 'px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      const textY = Math.max(14 / Math.max(sx, sy), b[1] - 3 / Math.max(sx, sy));
+      ctx.lineWidth = 3 / Math.max(sx, sy);
+      ctx.strokeStyle = '#101426';
+      ctx.strokeText(label, b[0], textY);
+      ctx.fillStyle = chosen ? '#ffbd45' : '#00d9ff';
+      ctx.fillText(label, b[0], textY);
+      ctx.restore();
+    });
+
     if (referenceLine) {
       drawLine(referenceLine.a, referenceLine.b, '#00d9ff', 3, true);
       drawPoint(referenceLine.a, '#00d9ff');
@@ -725,6 +784,10 @@
   }
 
   function updateButtons() {
+    aiScanBtn.disabled = !preview.src;
+    aiClearBtn.disabled = aiDetections.length === 0;
+    aiDetectionSelect.disabled = aiDetections.length === 0;
+    aiUseBoxBtn.disabled = aiSelectedIndex < 0 || !aiDetections[aiSelectedIndex];
     resetRefBtn.hidden = !preview.src;
     clearBtn.hidden = !preview.src;
     zoomOutBtn.hidden = !preview.src;
@@ -992,6 +1055,10 @@
         lines = [];
         boxes = [];
         boxPoints = [];
+        aiDetections = [];
+        aiSelectedIndex = -1;
+        updateAiDetectionSelect();
+        aiStatus.textContent = 'Image loaded. Tap “Scan photo with AI” to suggest object outlines.';
         undoStack = [];
         redoStack = [];
         zoomLevel = 1;
@@ -1026,6 +1093,162 @@
     };
     probe.src = objectUrl;
   }
+
+  function setAiStatus(message, type) {
+    aiStatus.textContent = message;
+    aiStatus.className = 'small' + (type ? ' ' + type : '');
+  }
+
+  function loadAiScript(url) {
+    return new Promise(function (resolve, reject) {
+      const existing = Array.from(document.scripts).find(function (s) { return s.src === url; });
+      if (existing) {
+        if (existing.dataset.loaded === 'true') { resolve(); return; }
+        existing.addEventListener('load', resolve, { once: true });
+        existing.addEventListener('error', reject, { once: true });
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = url;
+      script.async = true;
+      script.onload = function () { script.dataset.loaded = 'true'; resolve(); };
+      script.onerror = function () { reject(new Error('Could not download the free AI library. Check your internet connection and try again.')); };
+      document.head.appendChild(script);
+    });
+  }
+
+  async function getAiModel() {
+    if (aiModel) return aiModel;
+    if (aiModelLoading) return aiModelLoading;
+    aiModelLoading = (async function () {
+      setAiStatus('Loading free AI libraries and object-detection model… first use may take a little while.');
+      await loadAiScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
+      await loadAiScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js');
+      if (!window.tf || !window.cocoSsd) throw new Error('The AI library did not start correctly. Please reload MeasurePro and try again.');
+      try { await window.tf.ready(); } catch (_) {}
+      aiModel = await window.cocoSsd.load({ base: 'lite_mobilenet_v2' });
+      return aiModel;
+    })();
+    try { return await aiModelLoading; }
+    finally { aiModelLoading = null; }
+  }
+
+  function updateAiDetectionSelect() {
+    const previous = aiSelectedIndex;
+    aiDetectionSelect.innerHTML = '';
+    if (!aiDetections.length) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No detections yet';
+      aiDetectionSelect.appendChild(opt);
+      aiSelectedIndex = -1;
+    } else {
+      aiDetections.forEach(function (det, index) {
+        const opt = document.createElement('option');
+        opt.value = String(index);
+        opt.textContent = (index + 1) + '. ' + det.class + ' — ' + Math.round(det.score * 100) + '% confidence';
+        aiDetectionSelect.appendChild(opt);
+      });
+      aiSelectedIndex = previous >= 0 && previous < aiDetections.length ? previous : 0;
+      aiDetectionSelect.value = String(aiSelectedIndex);
+    }
+    aiClearBtn.disabled = aiDetections.length === 0;
+    aiDetectionSelect.disabled = aiDetections.length === 0;
+    aiUseBoxBtn.disabled = aiSelectedIndex < 0;
+  }
+
+  aiScanBtn.addEventListener('click', async function () {
+    if (!preview.src || !preview.naturalWidth) {
+      setAiStatus('Choose or capture a photo before scanning.', 'warning');
+      return;
+    }
+    const token = ++aiScanToken;
+    aiScanBtn.disabled = true;
+    aiScanBtn.textContent = '⏳ Scanning…';
+    try {
+      const model = await getAiModel();
+      if (token !== aiScanToken) return;
+      setAiStatus('Analyzing the photo in this browser…');
+      const predictions = await model.detect(preview, 25, 0.35);
+      if (token !== aiScanToken) return;
+      aiDetections = predictions
+        .filter(function (p) { return p && p.bbox && p.bbox.length === 4 && p.score >= 0.35; })
+        .map(function (p) {
+          const x = Math.max(0, Math.min(imageNaturalWidth, p.bbox[0]));
+          const y = Math.max(0, Math.min(imageNaturalHeight, p.bbox[1]));
+          const right = Math.max(x, Math.min(imageNaturalWidth, p.bbox[0] + p.bbox[2]));
+          const bottom = Math.max(y, Math.min(imageNaturalHeight, p.bbox[1] + p.bbox[3]));
+          return { class: p.class, score: p.score, bbox: [x, y, right - x, bottom - y] };
+        })
+        .filter(function (p) { return p.bbox[2] >= 4 && p.bbox[3] >= 4; });
+      aiSelectedIndex = aiDetections.length ? 0 : -1;
+      updateAiDetectionSelect();
+      redraw();
+      updateButtons();
+      if (aiDetections.length) {
+        setAiStatus('Found ' + aiDetections.length + ' possible object(s). Cyan/yellow boxes are AI suggestions; verify the edges manually. The model may not recognize walls, windows or doors.', 'success');
+      } else {
+        setAiStatus('No supported objects were detected. Try a clearer, well-lit photo containing a recognizable item such as a chair, sofa, bed, table, TV, toilet or refrigerator.', 'warning');
+      }
+    } catch (err) {
+      setAiStatus('AI scan failed: ' + (err && err.message ? err.message : 'unknown error') + ' The existing manual measurement tools still work.', 'error');
+    } finally {
+      if (token === aiScanToken) {
+        aiScanBtn.disabled = !preview.src;
+        aiScanBtn.textContent = '✨ Scan photo with AI';
+      }
+    }
+  });
+
+  aiDetectionSelect.addEventListener('change', function () {
+    aiSelectedIndex = Number(aiDetectionSelect.value);
+    if (!Number.isInteger(aiSelectedIndex) || !aiDetections[aiSelectedIndex]) aiSelectedIndex = -1;
+    aiUseBoxBtn.disabled = aiSelectedIndex < 0;
+    redraw();
+  });
+
+  aiClearBtn.addEventListener('click', function () {
+    aiScanToken++;
+    aiDetections = [];
+    aiSelectedIndex = -1;
+    updateAiDetectionSelect();
+    updateButtons();
+    redraw();
+    setAiStatus('AI outlines cleared. Existing measurements were not changed.');
+  });
+
+  aiUseBoxBtn.addEventListener('click', function () {
+    const det = aiDetections[aiSelectedIndex];
+    if (!det) return;
+    if (!referenceSet) {
+      setAiStatus('Set a known reference length first. AI object detection cannot establish real-world scale by itself.', 'warning');
+      setStatus('⚠️ Set a known reference length before using an AI outline as a measured shape.', 'warning');
+      return;
+    }
+    const b = det.bbox;
+    if (b[2] < 2 || b[3] < 2) {
+      setAiStatus('This outline is too small to use. Choose another detection.', 'warning');
+      return;
+    }
+    pushUndo();
+    const points = [
+      { x: b[0], y: b[1] },
+      { x: b[0] + b[2], y: b[1] },
+      { x: b[0] + b[2], y: b[1] + b[3] },
+      { x: b[0], y: b[1] + b[3] }
+    ];
+    boxes.push({ points: points });
+    boxPoints = [];
+    boxPreviewPoint = null;
+    mode = 'box';
+    boxModeBtn.classList.add('active');
+    lineModeBtn.classList.remove('active');
+    selectItem('box', boxes.length - 1);
+    setAiStatus('Added the AI bounding box as an editable 4-point shape. Drag its corners to fit the real object edges, then verify the result.', 'success');
+    setStatus('🧠 AI outline added as an editable shape. Adjust all four corners to match the object before trusting its dimensions.', 'success');
+    updateButtons();
+    redraw();
+  });
 
   fileInput.addEventListener('change', handlePhotoSelection);
   cameraInput.addEventListener('change', handlePhotoSelection);
